@@ -1,0 +1,63 @@
+#!/usr/bin/env php
+<?php
+chdir(__DIR__);
+system("rm -rf out");
+@mkdir("out");
+system("rm -rf tpl");
+@mkdir("tpl");
+chdir("tpl");
+system("unzip ../planer.ods");
+chdir(__DIR__);
+if(isset($_SERVER['argv'][3])){
+    setlocale(LC_ALL, $_SERVER['argv'][3]);
+}else {
+    setlocale(LC_ALL, "de_DE.utf8");
+}
+$from = strtotime($_SERVER['argv'][1]);
+if(!$from) $from=strtotime("first day of next month");
+$days = $_SERVER['argv'][2];
+if(!$days) $days = cal_days_in_month(CAL_GREGORIAN,date("m",$from),date("Y",$from));
+$tpl = file_get_contents("tpl/content.xml");
+@mkdir("out");
+while ($days > 0) {
+    $days--;
+    $now = $from + $days * 60 * 60 * 24 - 1;
+    $folderName = "./out/" . date("Y-m-d", $now);
+    system("rm -rf $folderName");
+    @mkdir("$folderName");
+    chdir("$folderName");
+    system("unzip ../../planer.ods");
+    chdir(__DIR__);
+
+    $data = preg_replace_callback("/{{([^:}]*)(:([^:}]*))?}}/m", function ($match) use ($now) {
+        $type = $match[1];
+        $param = $match[3];
+        switch ($type) {
+            case "DATE":
+                return strftime($param,$now);
+                break;
+            default:
+                return "UNKNOWN COMMAND " . $match[0];
+        }
+    }, $tpl);
+    file_put_contents("$folderName/content.xml", $data);
+    chdir("$folderName");
+    system("zip -r " . basename($folderName) . ".ods .");
+    system("loffice --nologo --norestore --invisible --nolockcheck --nodefault --convert-to pdf " . basename($folderName) . ".ods");
+    chdir(__DIR__);
+}
+copy("notizen.ods", "out/notizen.ods");
+chdir("out");
+system("loffice --nologo --norestore --invisible --nolockcheck --nodefault --convert-to pdf notizen.ods");
+system('find -type f -not -name  "*.pdf" -delete');
+
+system('find -name "*.pdf" -not -name notizen.pdf -exec mv "{}" . \;');
+system("find -type d -delete");
+foreach (glob('*.pdf') as $pdf) {
+    if ($pdf === "notizen.pdf") continue;
+    system(" pdfjam --nup 2x1 $pdf notizen.pdf --landscape --a3paper --outfile full-$pdf");
+}
+
+system('find -name "*.pdf" -not -name "full-*" -delete');
+system("pdfunite *.pdf all.pdf");
+system("rm -rf ../tpl");

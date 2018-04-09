@@ -8,15 +8,15 @@ system("rm -rf tpl");
 chdir("tpl");
 system("unzip ../planer.ods");
 chdir(__DIR__);
-if(isset($_SERVER['argv'][3])){
+if (isset($_SERVER['argv'][3])) {
     setlocale(LC_ALL, $_SERVER['argv'][3]);
-}else {
+} else {
     setlocale(LC_ALL, "de_DE.utf8");
 }
 $from = strtotime($_SERVER['argv'][1]);
-if(!$from) $from=strtotime("first day of next month");
+if (!$from) $from = strtotime("first day of next month");
 $days = $_SERVER['argv'][2];
-if(!$days) $days = cal_days_in_month(CAL_GREGORIAN,date("m",$from),date("Y",$from));
+if (!$days) $days = cal_days_in_month(CAL_GREGORIAN, date("m", $from), date("Y", $from));
 $tpl = file_get_contents("tpl/content.xml");
 @mkdir("out");
 while ($days > 0) {
@@ -34,7 +34,7 @@ while ($days > 0) {
         $param = $match[3];
         switch ($type) {
             case "DATE":
-                return strftime($param,$now);
+                return strftime($param, $now);
                 break;
             default:
                 return "UNKNOWN COMMAND " . $match[0];
@@ -44,6 +44,7 @@ while ($days > 0) {
     chdir("$folderName");
     system("zip -r " . basename($folderName) . ".ods .");
     system("loffice --nologo --norestore --invisible --nolockcheck --nodefault --convert-to pdf " . basename($folderName) . ".ods");
+
     chdir(__DIR__);
 }
 copy("notizen.ods", "out/notizen.ods");
@@ -55,7 +56,9 @@ system('find -name "*.pdf" -not -name notizen.pdf -exec mv "{}" . \;');
 system("find -type d -delete");
 foreach (glob('*.pdf') as $pdf) {
     if ($pdf === "notizen.pdf") continue;
-    system(" pdfjam --nup 2x1 $pdf notizen.pdf --landscape --a3paper --outfile full-$pdf");
+    system(" pdfjam --nup 2x1 $pdf notizen.pdf --landscape --a3paper --outfile tmp-$pdf");
+    system("gs -o full-$pdf -sDEVICE=pdfwrite -dPDFSETTINGS=/prepress tmp-$pdf");
+    unlink("tmp-$pdf");
 }
 
 system('find -name "*.pdf" -not -name "full-*" -delete');

@@ -59,5 +59,9 @@ foreach (glob('*.pdf') as $pdf) {
 }
 
 system('find -name "*.pdf" -not -name "full-*" -delete');
-system("pdfunite *.pdf all.pdf");
+system("pdfunite *.pdf all-mangled.pdf");
+system("gs -o all-fixed.pdf -sDEVICE=pdfwrite -dPDFSETTINGS=/prepress all-mangled.pdf");
+system("pdfjam --outfile all.pdf --paper a4paper --landscape all-fixed.pdf");
+unlink("all-fixed.pdf");
+unlink("all-mangled.pdf");
 system("rm -rf ../tpl");

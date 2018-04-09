@@ -14,6 +14,7 @@ RUN useradd -m libreoffice; \
                                                   pdfjam \
                                                   poppler-utils \
                                                   texlive-latex-recommended \
+                                                  ghostscript \
     && rm -rf /var/lib/apt/lists/* \
     && ln -s /usr/share/i18n/SUPPORTED /var/lib/locales/supported.d/all \
     && locale-gen
